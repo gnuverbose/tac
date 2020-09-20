@@ -1,0 +1,502 @@
+COMMENT|*******************************************************************************************************************************************************************************
+COMMENT|*************** Created on 07/22/2019 by YJL *********************************************************************************
+COMMENT|*****************Striker Oxide FE testing**************************************************************************************************************************************
+COMMENT|**************Gas_Flow_Test********* ******************************************************************************************************************************************
+COMMENT|*******Procedure section 20.6 Manifold A, B, and L Gas Flow Test***************************************************************************************************************
+COMMENT|**********Validation on MM/DD/2017 by Initals  ********************************************************************************************************************************
+COMMENT|*******************************************************************************************************************************************************************************
+
+COMMENT|**********************************************
+COMMENT|**** Confirm Test*****
+COMMENT|**********************************************
+LABEL|TITLE
+DIALOG|variable INITIAL string|(literal "Is the QSM and Test Technician ready for the " string) #+ (spec Test_Name_Spec spec) #+ (literal " TEST? Type yes/no. Use lowercase letters.  Click OK to continue." string)|literal "Resources\Intro.jpg" string|literal 0 integer|SKIP
+COMMENT|**** INITIALIZE TEST *****
+WRITE|variable testName string|(literal "Gas Flow of Single Station Test" string)
+
+IF|((variable INITIAL string) #!= (literal "no" string))|SKIP
+IF|((variable INITIAL string) #== (literal "yes" string))|TITLE
+
+COMMENT|**********************************************
+COMMENT|**** Summary & Prerequisite*****
+COMMENT|**********************************************
+DIALOG||(literal "Summary: This test will flow gas one station at a time, with the remaining three stations closed, to verify the valves and polylines being installed properly." string)|literal "Resources\PIC_SUM.JPG" string|literal 0 integer|SKIP
+DIALOG||literal "Prerequisite Test Cases: FE_Gas_Flow_Test. If the module was rebooted run FE_TM_PM_Initialize first." string|literal "Resources\PIC_PRE.JPG" string|literal 0 integer|SKIP
+DIALOG||literal "Safety: Standard Precautions" string|literal "Resources\PIC_SAFE.JPG" string|literal 0 integer|SKIP
+DIALOG||(literal "Special tools: NA" string)|literal "Resources\PIC_TOOL.JPG" string|literal 0 integer|SKIP
+
+COMMENT|********************************************************************************************************************************************
+COMMENT|***********************************************Initialization Section***********************************************************************
+COMMENT|********************************************************************************************************************************************
+
+COMMENT|**********************************************
+COMMENT|**** TM HANLDER INITIALIZE BUTTON Query *****
+COMMENT|**********************************************
+
+COMMENT|***MAINTAIN CHAMBER  PAGE NAVIGATION********
+EXECUTE_SUPPORT|literal "lamATACUIResource" string|goto:focus:|literal "TransferChamber" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:superPage:|literal "Maintenance" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:subPage:|literal "Overview" string|NAV_FAIL
+
+WRITE|variable TM_INIT_ONLY string|lamATACUIResource [atacGetUIValueAt:uiClassName:componentID:screenTitle:|(literal "LamUINTMMaintenanceOverview" string)|(literal "initializationPolicyState" string)|literal "TransferChamber" string] query
+IF|(variable TM_INIT_ONLY string) #== (literal "Initialized" string)|TM_FAILED
+
+COMMENT|**********************************************
+COMMENT|***MAINTAIN CHAMBER PAGE NAVIGATION*****
+COMMENT|**********************************************
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:focus:|(spec Resource_Name spec)|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:superPage:|literal "Maintenance" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:subPage:|literal "Chamber" string|NAV_FAIL
+
+DELAY|literal 1 integer
+
+COMMENT|**********************************************
+COMMENT|**** MAINTENANCE MODE BUTTON TEST *****
+COMMENT|**********************************************
+WRITE|variable MAIN_MODE string|(spec Resource_Name spec) mode measurable
+IF|(variable MAIN_MODE string)#== (literal "Maintenance" string)|MAIN_FAILED
+
+COMMENT|**********************************************
+COMMENT|**** PM INITIALIZE ONLY BUTTON TEST *****
+COMMENT|**********************************************
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:focus:|(spec Resource_Name spec)|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:superPage:|literal "Maintenance" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:subPage:|literal "Chamber" string|NAV_FAIL
+
+DELAY|literal 1 integer
+
+WRITE|variable INIT_ONLY1 string|lamATACUIResource [atacGetUIValueAt:uiClassName:componentID:screenTitle:|(literal "LamUIPECVDFlexChamberMaintenance" string)|(literal "InputField12" string)|(spec Resource_Name spec)] query
+IF|(variable INIT_ONLY1 string) #== (literal "Initialized" string)|IN_FAILED
+
+COMMENT|******************************************************
+COMMENT|**** Uncheck Manual Mode ****
+COMMENT|******************************************************
+
+COMMENT|***GASVAC PAGE NAVIGATION********
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:focus:|(spec Resource_Name spec)|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:superPage:|literal "Maintenance" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:subPage:|literal "GasVac" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|press:listName:compName:tabPage:|literal "gasVacTabs" string|literal "NoModeDependency_gasVacTabs" string|literal "Gas Box" string|NAV_FAIL
+DELAY|literal .5 integer
+
+COMMENT|***UNCheck the manual mode********
+WRITE|variable Man_Con string|lamATACUIResource [atacGetUIValueAt:uiClassName:componentID:screenTitle:|(literal "LamUIPECVDFlexGasVacMaintenance" string)|literal "CheckBox1" string|(spec Resource_Name spec)] query
+DELAY|literal 1 integer
+IF|(variable Man_Con string)#== (literal "false" string)|UNCHECK
+GOTO|UNCHECKED
+
+LABEL|UNCHECK
+EXECUTE_SUPPORT|literal "lamATACUIResource" string|atacUIButtonPress:onFocus:uiClassName:button:screenTitle:|(spec Resource_Name spec)|literal "LamUIPECVDFlexGasVacMaintenance" string|literal "CheckBox1" string|(spec Resource_Name spec)|MANUAL_FAIL
+DELAY|literal 1 integer
+
+LABEL|UNCHECKED
+
+COMMENT|******************************************************
+COMMENT|**** CLEAR DIRTY FLAG TEST *****
+COMMENT|******************************************************
+DIALOG||literal "Standby: Dirty Flags will be cleared" string|literal "Resources\PIC_DF_I.jpg" string|literal 3 integer|DF_START
+LABEL|DF_START
+
+COMMENT|***Maintenance TABS PAGE NAVIGATION********
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:focus:|(spec Resource_Name spec)|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:superPage:|literal "Maintenance" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:subPage:|literal "Service" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|press:listName:compName:tabPage:|literal "maintenanceTabs" string|literal "NoModeDependency_maintenanceTabs" string|literal "Service Utility" string|NAV_FAIL
+
+DELAY|literal .5 integer
+
+COMMENT|**** SELECT ALL BUTTON TO MARK ALL MFCs*********
+EXECUTE_SUPPORT|literal "lamATACUIResource" string|atacUIButtonPress:onFocus:uiClassName:button:screenTitle:|(spec Resource_Name spec)|literal "LamUINPMManufacturingUtilities" string|literal "SelectAll" string|(spec Resource_Name spec)|NAV_FAIL
+
+DELAY|literal 1 integer
+
+COMMENT|****CLEAR DIRTY FLAG BUTTON **********
+EXECUTE_SUPPORT|literal "lamATACUIResource" string|atacUIButtonPress:onFocus:uiClassName:button:screenTitle:|(spec Resource_Name spec)|literal "LamUINPMManufacturingUtilities" string|literal "clearDirtyFlag" string|(spec Resource_Name spec)|NAV_FAIL
+DELAY|literal 1 integer
+COMMENT|***GASVAC PAGE NAVIGATION********
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:focus:|(spec Resource_Name spec)|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:superPage:|literal "Maintenance" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:subPage:|literal "GasVac" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|press:listName:compName:tabPage:|literal "gasVacTabs" string|literal "NoModeDependency_gasVacTabs" string|literal "Gas Box" string|NAV_FAIL
+DELAY|literal 1 integer
+
+DIALOG||literal "All Dirty Flags have been cleared and all MFCs have a green LED indicator." string|literal "Resources\PIC_DF.jpg" string|literal 3 integer|VERIFY_0_PB
+LABEL|VERIFY_0_PB
+
+COMMENT|******************************************************
+COMMENT|**** CHAMBER PUMPDOWN AND PUMP STATUS TEST ****
+COMMENT|******************************************************
+
+COMMENT|***INTERLOCK PAGE NAVIGATION********
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:focus:|(spec Resource_Name spec)|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:superPage:|literal "Maintenance" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:subPage:|literal "Interlocks" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|press:listName:compName:tabPage:|literal "infoTabs" string|literal "NoModeDependency_infoTabs" string|literal "Main Interlocks" string|NAV_FAIL
+DELAY|literal .5 integer
+
+COMMENT|***ATAC toggles Pendulum Valve Motion Enable Condition ****
+WRITE|(spec Resource_Name spec) PendulumValveCloseCMD_DO controllable|literal "Open" string
+DELAY|literal .5 integer
+
+COMMENT|***GASVAC PAGE NAVIGATION********
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:focus:|(spec Resource_Name spec)|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:superPage:|literal "Maintenance" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:subPage:|literal "GasVac" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|press:listName:compName:tabPage:|literal "gasVacTabs" string|literal "NoModeDependency_gasVacTabs" string|literal "Gas Box" string|NAV_FAIL
+DELAY|literal .2 integer
+
+COMMENT|**** PUMP TO BASE BUTTON PRESS STATUS READING******
+EXECUTE_SUPPORT|literal "lamATACUIResource" string|atacUIButtonPress:onFocus:uiClassName:button:screenTitle:|(spec Resource_Name spec)|literal "LamUIPECVDFlexGasVacMaintenance" string|literal "PumpDependency_pumpToBase" string|(spec Resource_Name spec)|PUMP_FAIL
+
+COMMENT|***While loop to measure PUMP DOWN*****
+WRITE|variable TIME_PB integer|literal 1 integer
+WHILE|(variable TIME_PB integer) #<= (spec SLOW_PUMP_Time_Spec spec)
+WRITE|variable CHBR_PRES_meas float|(spec Resource_Name spec) PressureReading measurable
+WRITE|variable CHBR_PRES_torr float|(variable CHBR_PRES_meas float) #/ (literal 1000 integer)
+WRITE|variable CHBR_PRES_Spec_torr float|(spec CHBR_PRES_Spec spec) #/ (literal 1000 integer)
+DIALOG||(literal "Chamber Pressure is " string) #+ (variable CHBR_PRES_torr float #asString) #+ (literal " Torr. Measurement will continue until Chamber Pressure has reached spec  " string) #+ (variable CHBR_PRES_Spec_torr float #asString) #+ (literal " Torr." string)|literal "Resources\PIC_PR.jpg" string|literal 5 integer|PROCEED_P
+LABEL|PROCEED_P
+DELAY|literal 1 integer
+IF|(variable CHBR_PRES_torr float) #<= (variable CHBR_PRES_Spec_torr float)|CONT_3
+GOTO|CHMBR_PB_END
+LABEL|CONT_3
+WRITE|variable TIME_PB integer|variable TIME_PB integer #+ literal 5 integer
+DELAY|literal .2 integer
+END_WHILE
+GOTO|CHMBR_PB_END
+
+LABEL|CHMBR_PB_END
+WRITE|spec CHBR_PRES_Meas spec|(variable CHBR_PRES_torr float)
+DELAY|literal 1 integer
+
+COMMENT|**** PUMP STATUS READING *********
+WRITE|variable PUMP string|lamATACUIResource [atacGetUIValueAt:uiClassName:componentID:screenTitle:|(literal "LamUIPECVDFlexGasVacMaintenance" string)|(literal "GasVacStatus" string)|(spec Resource_Name spec)] query
+DIALOG||(literal "Chamber Pressure Status is " string) #+ (variable PUMP string #asString) #+ (literal "." string)|literal "Resources\PIC_CS.jpg" string|literal 5 integer|PROCEED_PUMP
+LABEL|PROCEED_PUMP
+IF|(variable PUMP string)#== (literal "Controlling" string)|PUMP_FAIL
+DELAY|literal 1 integer
+
+COMMENT|***ATAC checks throttle valve is open****
+WRITE|variable THRV_1 string|(spec Resource_Name spec) GasVacuumSystemThrottleValveState measurable 
+DIALOG||((literal "Throttle valve status is  " string) #+ ((variable THRV_1 string) #asString) #asString)|literal "Resources\PIC_TL.jpg" string|literal 3 integer|PROCEED_2
+LABEL|PROCEED_2
+IF|((variable THRV_1 string) #== (literal "Open" string))|CHBR_TORR_FAIL
+DELAY|literal .2 integer
+
+COMMENT|******************************************************
+COMMENT|**** Reset Gas Safety Interlock ****
+COMMENT|******************************************************
+COMMENT|***INTERLOCK PAGE NAVIGATION********
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:focus:|(spec Resource_Name spec)|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:superPage:|literal "Maintenance" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:subPage:|literal "Interlocks" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|press:listName:compName:tabPage:|literal "infoTabs" string|literal "NoModeDependency_infoTabs" string|literal "Main Interlocks" string|NAV_FAIL
+DELAY|literal .5 integer
+
+COMMENT|***ATAC toggles Gas Safety Interlock Condition ****
+WRITE|(spec Resource_Name spec) GasSafetyInterlockReset_DO controllable|literal "Off" string
+DELAY|literal .5 integer
+WRITE|(spec Resource_Name spec) GasSafetyInterlockReset_DO controllable|literal "On" string
+DELAY|literal .5 integer
+WRITE|(spec Resource_Name spec) GasSafetyInterlockReset_DO controllable|literal "Off" string
+DELAY|literal .5 integer
+
+COMMENT|***ATAC checks Gas Condition Virtual LED is GREEN****
+WRITE|variable GAS_CON_1 string|(spec Resource_Name spec) GasSafetyInterlockOK_DI measurable 
+DIALOG||(literal "Gas Condition status is  " string) #+ ((variable GAS_CON_1 string) #asString)|literal "Resources\PIC_GI.jpg" string|literal 5 integer|PROCEED_0
+LABEL|PROCEED_0
+IF|((variable GAS_CON_1 string) #== (literal "OK" string))|GAS_FAIL
+DELAY|literal 1 integer
+
+COMMENT|********************************************************************************************************************************************
+COMMENT|***********************************************Start test**************************************************************************
+COMMENT|********************************************************************************************************************************************
+COMMENT|************* Connect Gaslines ************* 
+DIALOG||(literal "Verify " string) #+ (spec Gas_Type_Spec spec) #+ (literal " gas is connected to the gas stick " string) #+ (spec Gas_Stick_Number_Spec spec #asString) #+ (literal " inside gas box for MFC " string) #+ (spec Gas_MFC_Number_Spec spec #asString) #+ (literal ". Ensure " string) #+ (spec Gas_Type_Spec spec) #+ (literal " gas is Turned ON and charged to " string) #+ (spec Facilities_Gas_Supply_Pressure_Spec spec #asString) #+ (literal "psi at the Facilities and LOTO valve is open. Also, verify the pressure transducer displays at least " string) #+ (spec Pressure_Transducer_Reading_Spec spec #asString) #+ (literal " psi." string)|literal "Resources\RF_Gen_Dummy_Load\PIC_Gas.jpg" string|literal 0 integer|CANCEL
+
+COMMENT|***********************************************************************
+COMMENT|****** FLOW 5000 sccm of gas from MFC ******
+COMMENT|***********************************************************************
+DIALOG||(literal "Click Ok and ATAC will navigate to Maintain/GasVac/Gas Box tab and set MFC " string) #+ (spec MFC_CH_Spec spec #asString) #+ (literal " flow to " string) #+ (spec MFC_SETPOINT_Spec spec #asString) #+ (literal "sccm." string)|literal "Resources\RF_PLASMA\PIC_8.jpg" string|literal 0 integer|CANCEL
+
+COMMENT|**** GAS MFC FLOW *****
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:focus:|(spec Resource_Name spec)|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:superPage:|literal "Maintenance" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:subPage:|literal "GasVac" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|press:listName:compName:tabPage:|literal "gasVacTabs" string|literal "NoModeDependency_gasVacTabs" string|literal "Gas Box" string|NAV_FAIL
+
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|atacUpdateInputValue:onFocus:uiClassName:inputComponent:value:gasChannelName:|(spec Resource_Name spec)|literal "LamUIGasChannel" string|literal "mfcSetFlow" string|spec MFC_SETPOINT_Spec spec|((literal "Gas" string) #+ (spec MFC_CH_Spec spec #asString))|FLOW_FAIL
+DELAY|literal 5 integer
+
+WRITE|variable MFC_SETPOINT integer|spec MFC_SETPOINT_Spec spec
+DELAY|literal 1 integer
+
+WRITE|variable Stabilize_Num integer|literal 1 integer
+LABEL|Stabilize_Start 
+IF|(variable Stabilize_Num integer) #<= (spec Stabilize_Spec spec)|FLOW_FAIL
+DELAY|literal .2 integer
+WRITE|variable MFC_FLOW float|(spec Resource_Name spec) (( literal "MFC" string) #+ (spec MFC_CH_Spec spec #asString) #+ (literal "Flow_AI" string)) measurable 
+DELAY|literal .2 integer
+WRITE|variable Gasflow_max float|((variable MFC_SETPOINT integer) #+ (spec MFC_SETPOINT_VAR_Spec spec))
+DELAY|literal .2 integer
+WRITE|variable Gasflow_min float|((variable MFC_SETPOINT integer) #- (spec MFC_SETPOINT_VAR_Spec spec))
+DELAY|literal .2 integer
+
+DIALOG||(literal "Gas Flow for MFC " string) #+ (spec MFC_CH_Spec spec #asString) #+ (literal " is " string) #+ ((variable MFC_FLOW float) #asString) #+ (literal " sccm. The minimum spec is " string) #+ (variable Gasflow_min float #asString) #+ (literal ". The flow maximum is " string) #+ (variable Gasflow_max float #asString) #+ (literal "." string) |literal "Resources\PIC_FLOW.jpg" string|literal 5 integer|PROCEED_2_50
+LABEL|PROCEED_2_50
+
+COMMENT|*****Compare to Min and Max, if does not pass will loop back and test again***********
+IF|((variable MFC_FLOW float) #>= (variable Gasflow_min float)) #AND ((variable MFC_FLOW float) #<= (variable Gasflow_max float))|Stabilize_Cont
+GOTO|FLOW_PASS
+
+LABEL|Stabilize_Cont
+WRITE|variable Stabilize_Num integer|variable Stabilize_Num integer #+ literal 6 integer
+GOTO|Stabilize_Start
+
+LABEL|FLOW_PASS
+
+WRITE|spec MFC_FLOW_Meas spec|variable MFC_FLOW float
+DELAY|literal .2 integer
+
+COMMENT|***********************************************************************
+COMMENT|****** FLOW gas from one station at a time, with the remaining three stations closed ******
+COMMENT|***********************************************************************
+DIALOG||literal "Click OK and ATAC will navigate to the Maintain/GasVac/Top Plate tab and verify gas flow one station at a time, with the remaining three stations closed." string|literal "Resources\XXX\XXX.jpg" string|literal 0 integer|CANCEL
+
+COMMENT|***PAGE NAVIGATION********
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:focus:|(spec Resource_Name spec)|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:superPage:|literal "Maintenance" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|goto:subPage:|literal "GasVac" string|NAV_FAIL
+EXECUTE_SUPPORT|(literal "lamATACUIResource" string)|press:listName:compName:tabPage:|literal "gasVacTabs" string|literal "NoModeDependency_gasVacTabs" string|literal "Top Plate" string|NAV_FAIL
+
+WRITE|variable i integer|spec COUNT_1_START_Spec spec
+
+WHILE|(variable i integer) #<= (spec COUNT_1_END_Spec spec)
+
+WRITE|(spec Resource_Name spec) (spec ((literal "Valve_STN_" string) #+ (variable i integer #asString) #+ (literal "_DO_Spec" string)) spec) controllable|(spec Open_CMD_Spec spec)
+DIALOG||(literal "The " string) #+ (spec ((literal "Valve_STN_" string) #+ (variable i integer #asString) #+ (literal "_Name_Spec" string)) spec) #+ (literal " is open.  ATAC will close remaining three stations." string)|literal "Resources\PIC_OPEN.jpg" string|literal 5 integer|Con_1
+LABEL|Con_1
+
+COMMENT|****Close remaining three stations *****
+WRITE|variable j integer|literal 1 integer
+LABEL|Start_j
+IF|(variable j integer) #<= (spec Station_Max_Spec spec)|End_j
+
+IF|(variable j integer) #!= (variable i integer)|Con_j
+
+WRITE|(spec Resource_Name spec) (spec ((literal "Valve_STN_" string) #+ (variable j integer #asString) #+ (literal "_DO_Spec" string)) spec) controllable|(spec Close_CMD_Spec spec)
+DELAY|literal .5 integer
+
+DIALOG||(literal "The " string) #+ (spec ((literal "Valve_STN_" string) #+ (variable j integer #asString) #+ (literal "_Name_Spec" string)) spec) #+ (literal " is closed.  ATAC will close remaining stations." string)|literal "Resources\PIC_CLOSE.jpg" string|literal 5 integer|Con_2
+LABEL|Con_2
+
+LABEL|Con_j
+WRITE|variable j integer|variable j integer #+ literal 1 integer
+
+GOTO|Start_j
+LABEL|End_j
+DELAY|literal 1 integer
+
+DIALOG||(literal "Only " string) #+ (spec ((literal "Valve_STN_" string) #+ (variable i integer #asString) #+ (literal "_Name_Spec" string)) spec) #+ (literal " is open.  The remaining stations are closed. ATAC will verify the MFC flow rate remains and the chamber pressure with gas flowing is within the Spec." string)|literal "Resources\PIC_OPEN.jpg" string|literal 5 integer|Con_3
+LABEL|Con_3
+
+COMMENT|*****Verify MFC flow rate remains***********
+WRITE|variable MFC_FLOW_with_Gas float|(spec Resource_Name spec) (( literal "MFC" string) #+ (spec MFC_CH_Spec spec #asString) #+ (literal "Flow_AI" string)) measurable 
+DELAY|literal 1 integer
+IF|((variable MFC_FLOW_with_Gas float) #>= (variable Gasflow_min float)) #AND ((variable MFC_FLOW_with_Gas float) #<= (variable Gasflow_max float))|GAS_FLOW_FAIL
+WRITE|spec ((literal "MFC_FLOW_STN_" string) #+ (variable i integer #asString) #+ (literal "_Meas" string)) spec|variable MFC_FLOW_with_Gas float
+DELAY|literal 1 integer
+
+COMMENT|*****Verify chamber pressure with gas flowing within the Spec***********
+WRITE|variable CHBR_PRES_meas float|(spec Resource_Name spec) PressureReading measurable
+DELAY|literal 1 integer
+DIALOG||(literal "Chamber pressure is " string) #+ (variable CHBR_PRES_meas float #asString) #+ (literal " mtorr. The minimum Spec of chamber pressure is " string) #+ (spec CHBR_PRES_Gas_Flow_Spec spec #asString) #+ (literal " mtorr." string)|literal "Resources\RF_PLASMA\PIC_8.JPG" string|literal 5 integer|READ_PRESSURE
+LABEL|READ_PRESSURE
+IF|(variable CHBR_PRES_meas float) #>= (spec CHBR_PRES_Gas_Flow_Spec spec)|CHBR_TORR_GAS_FLOW_FAIL
+WRITE|spec ((literal "CHBR_PRES_STN_" string) #+ (variable i integer #asString) #+ (literal "_Meas" string)) spec|variable CHBR_PRES_meas float
+DELAY|literal 1 integer
+
+DIALOG||(literal "The " string) #+ (spec ((literal "Valve_STN_" string) #+ (variable i integer #asString) #+ (literal "_Name_Spec" string)) spec) #+ (literal " is properly flowing gas with the remaining stations closed. The MFC flow rate remains, and the chamber pressure with gas flowing is within the Spec." string)|literal "Resources\PIC_FLOW.jpg" string|literal 5 integer|Con_4
+LABEL|Con_4
+
+WRITE|variable i integer|(variable i integer) #+ (literal 1 integer)
+
+END_WHILE
+
+DELAY|literal 1 integer
+
+COMMENT|**** PUMP TO BASE BUTTON to Close all Valves and MFC******
+EXECUTE_SUPPORT|literal "lamATACUIResource" string|atacUIButtonPress:onFocus:uiClassName:button:screenTitle:|(spec Resource_Name spec)|literal "LamUIPECVDFlexGasVacMaintenance" string|literal "PumpDependency_pumpToBase" string|(spec Resource_Name spec)|TECH_INFO_1
+LABEL|TECH_INFO_1
+
+DIALOG||((literal "QSM " string) #+ (spec Test_Name_Spec spec) #+ (literal " COMPLETE" string))|literal "Resources\Complete.JPG" string|literal 5 integer|TECH_INFO
+
+COMMENT|***Technicians Name Entry****
+LABEL|TECH_INFO
+LABEL|TECH_NAME_INPUT
+DIALOG|variable TECH_NAME_Meas string|literal "Enter the technician three letter initals in the space below." string|literal "Resources\TECH_INFO.jpg" string|literal 0 integer|TECH_NAME_INPUT_NXT
+LABEL|TECH_NAME_INPUT_NXT
+IF|(variable TECH_NAME_Meas string) #!= (literal "" string)|TECH_NAME_INPUT
+WRITE|spec TECH_NAME_Meas spec|(variable TECH_NAME_Meas string)
+GOTO|PASSED_TESTS
+
+COMMENT|**********************************************
+COMMENT|***Start of Failure Causes****
+COMMENT|**********************************************
+
+COMMENT|***Navigation Failed****
+LABEL|NAV_FAIL
+WRITE|spec COMMENT spec|(literal "Navigation failed." string)
+DIALOG||literal "Navigation failed. Please contact the lead and report the issue" string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***The PM failed to Initialize.***
+LABEL|IN_FAILED
+WRITE|spec COMMENT spec|(literal "The PM is not Initialized. " string)
+DIALOG||literal "The PM is not initialized. Run the PM TM initialization test case. Then restart this test case." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|SKIP
+
+COMMENT|***Transfer Module failed to initialize.***
+LABEL|TM_FAILED
+WRITE|spec COMMENT spec|(literal "Transfer Module is not initialized" string)
+DIALOG||literal "Transfer Module is not initialized. Run the PM TM initialization test case. Then restart this test case." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|SKIP
+
+COMMENT|***Maintenance mode of the PM failed.***
+LABEL|MAIN_FAILED
+WRITE|spec COMMENT spec|(literal "Maintenance mode of the PM is not initialized" string)
+DIALOG||literal "Maintenance mode of the PM is not initialized. Run the PM TM initialization test case. Then restart this test case." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|SKIP
+
+COMMENT|***Navigation Failed****
+LABEL|TEST_FAILED
+DIALOG||(variable testName string) #+ (literal " Failed." string)|(literal "Resources\Fail.JPG" string)|literal 5 integer|EXIT_FAILED
+LABEL|EXIT_FAILED
+GOTO|FINAL_FAILURE
+
+COMMENT|***PUMP TO BASE FAIL***
+LABEL|PUMP_FAIL
+WRITE|spec COMMENT spec|(literal "Unable to pump to base pressure spec." string)
+DIALOG||literal "Unable to pump to base, check connections and valves. Please contact the lead and report the issue." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***PUMP TO BASE FAIL***
+LABEL|SLOW_PUMP_FAIL
+LABEL|GASVAC_FAIL
+WRITE|spec COMMENT spec|(literal "Software GasVac Error." string)
+DIALOG||literal "Software GasVac Error. Unable to pump to base, check connections and valves. Please contact the lead and report the issue." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***Throttle Valve not open***
+LABEL|CHMBR_OPEN_FAIL
+WRITE|spec COMMENT spec|(literal "Throttle Valve is not open." string)
+DIALOG||literal "Throttle Valve is not open. Click on the UI to open the throttle valve and cancel and restart the test." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***PRESSURE TO HIGH***
+LABEL|CHM_PRES_FAIL
+WRITE|spec COMMENT spec|(literal "The Chamber Pressure is above spec." string)
+DIALOG||literal "The Chamber Pressure is above spec, pump to base and retry test or Please contact the lead and report the issue." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***GAS CONDITION FAILED***
+LABEL|GAS_FAIL
+WRITE|spec COMMENT spec|(literal "Gas condition interlock failed." string)
+DIALOG||literal "Gas condition failed and please contact the lead and report the issue." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***Helium Leak Detector Failed to reach base pressure****
+LABEL|HLD_BP_FAIL
+WRITE|spec COMMENT spec|(literal "Helium Leak Detector failed to reach base pressure." string)
+DIALOG||literal "Helium Leak Detector failed to reach base pressure. Please contact the lead and report the issue." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***Compare Helium Pressure Fail****
+LABEL|HLD_END_FAIL
+WRITE|spec COMMENT spec|(literal "Manifold Helium Leak Check failed minimum spec for Helium Leak flow rate." string)
+DIALOG||literal "Manifold Helium Leak Check failed minimum spec for Helium Leak flow rate. Trouble shoot the leak and identify the leak. Restart the test case when the leak is fixed.Please contact the lead and report the issue." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***The proper Valve failed to open****
+LABEL|VALVE_FAIL
+WRITE|spec COMMENT spec|(literal "The proper valve failed to open." string)
+DIALOG||literal "The proper valve failed to open and please contact the lead and report the issue." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***Chamber Did Not Pump Down****
+LABEL|CHBR_TORR_FAIL
+WRITE|spec COMMENT spec|(literal "Chamber failed to reach base pressure." string)
+DIALOG||literal "Chamber failed to reach base pressure. Verify it is pumped to base, check for gross leaks, and please contact the lead and report the issue." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***throttle valve is NOT closed***
+LABEL|CHM_VCLOSED_FAIL
+WRITE|spec COMMENT spec|(literal "Throttle Valve is not closed." string)
+DIALOG||literal "Throttle Valve is not closed. Verify it is pumped to base, check for gross leaks, and please contact the lead and report the issue." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***PRESSURE TO HIGH***
+LABEL|CONTROL_FAIL
+WRITE|spec COMMENT spec|(literal "The Throttle Valve is not controlling." string)
+DIALOG||literal "The Throttle Valve is not controlling. Pump to base and retry test and please contact the lead and report the issue." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***MANUAL MODE CHECK FAILED***
+LABEL|MANUAL_FAIL
+WRITE|spec COMMENT spec|(literal "The manual control box is not properly set." string)
+DIALOG||literal "The manual control box is checked, uncheck this box and restart the test." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***GasBox Record FAILED***
+LABEL|GASBOX_CHECK_FAIL
+WRITE|spec COMMENT spec|(literal "The Recorded Gas Box Configuration does not match known Gas Box Configurations." string)
+DIALOG||literal "The Recorded Gas Box Configuration does not match known Gas Box Configurations, check gas box and restart the test." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+LABEL|SETUP_VALUE_FAILED
+WRITE|spec COMMENT spec|(literal "Failed to setup the flow calibration factor." string)
+DIALOG||literal "Failed to setup the flow calibration factor. Contact the lead and report the issue." string|literal "" string|literal 0 integer|TEST_FAILED
+GOTO|TEST_FAILED
+
+COMMENT|***Flow failed to pump down***
+LABEL|FLOW_FAIL
+WRITE|spec COMMENT spec|(literal "Gas not flowing." string)
+DIALOG||literal "Gas not flowing, check conditions and previous test cases run and are correct. Pump to base and retry test and please contact the lead and report the issue." string|literal "" string|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***Flow failed***
+LABEL|GAS_FLOW_FAIL
+WRITE|spec COMMENT spec|(literal "MFC flow rate drops. Gas not flowing." string)
+DIALOG||literal "Gas not flowing, check the valves and polylines being installed properly. Please contact the lead and report the issue." string|literal "" string|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+LABEL|CHBR_TORR_GAS_FLOW_FAIL
+WRITE|spec COMMENT spec|(literal "Chamber pressure with gas flowing failed to reach the Spec." string)
+DIALOG||literal "Chamber pressure with gas flowing failed to reach the Spec. Verify gas is flowing, and check the valves and polylines being installed properly. Please contact the lead and report the issue." string|nil nil nil|literal 0 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+LABEL|CANCEL
+WRITE|spec COMMENT spec|(literal "Test was canceled by user." string)
+DIALOG||literal "Test was canceled by user." string|literal "" string|literal 3 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+COMMENT|****MAKE_SELECTION_FAIL****
+LABEL|MAKE_SELECTION_FAIL
+DIALOG||literal "Option Config not set, navigate to ATAC Manager/Data/Option Config and change the Make_Selection options to accurately represent the tool configuration and restart the test." string|(literal "Resources\MAKE_SEL.JPG" string)|literal 5 integer|FINAL_FAILURE
+GOTO|FINAL_FAILURE
+
+COMMENT|***Final Test Status****
+LABEL|PASSED_TESTS
+DIALOG||literal "Test complete. This test has PASSED." string|(literal "Resources\Pass.JPG" string)|literal 5 integer|COMPLETE
+LABEL|COMPLETE
+END|PASS
+
+LABEL|FINAL_FAILURE
+
+DIALOG||(literal " Test FAILED." string)|(literal "Resources\Fail.JPG" string)|literal 5 integer|TEST_FAIL
+LABEL|TEST_FAIL
+END|FAIL
+
+LABEL|SKIP
+DIALOG||(literal " Test skipped at this time." string)|(literal "Resources\TempSkip.JPG" string)|literal 5 integer|EXIT_SKIP
+LABEL|EXIT_SKIP
+END|SKIP
